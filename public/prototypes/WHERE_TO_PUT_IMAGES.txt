@@ -1,0 +1,30 @@
+DialaGO — prototype carousel images
+====================================
+
+Put EXACTLY these four files in THIS folder (same folder as this file):
+
+  1.JPEG
+  2.JPEG
+  3.JPEG
+  4.JPEG
+
+Full path on your machine (replace <PROJECT_ROOT> with your repo folder):
+
+  <PROJECT_ROOT>/public/prototypes/1.JPEG
+  <PROJECT_ROOT>/public/prototypes/2.JPEG
+  <PROJECT_ROOT>/public/prototypes/3.JPEG
+  <PROJECT_ROOT>/public/prototypes/4.JPEG
+
+In Cursor / VS Code, open the project root, then:
+
+  public  →  prototypes  →  (drop the four JPEGs here)
+
+Vite serves `public/` at the site root, so the app loads them as:
+
+  /prototypes/1.JPEG
+  /prototypes/2.JPEG
+  /prototypes/3.JPEG
+  /prototypes/4.JPEG
+
+If your files use lowercase ".jpg", either rename to ".JPEG" OR edit
+`PROTOTYPE_IMAGE_PATHS` in `src/components/PrototypeShowcase.tsx`.
