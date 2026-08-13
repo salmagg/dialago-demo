@@ -85,6 +85,7 @@ export const DEFAULT_PROFILE = {
   nativeLanguage: { presetId: 'spanish', manual: false, customText: '' },
   focus: { presetId: 'communication', manual: false, customText: '' },
   goal: { presetId: 'career', manual: false, customText: '' },
+  hometown: '',
 };
 
 export const PRACTICE_SCENARIOS = [

@@ -1,5 +1,6 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { getInitialLang, type Lang } from '../i18n';
+import { clearSessionId, createSession, fetchSession, readSessionId, writeSessionId } from './api/sessions';
 import { DEFAULT_PROFILE } from './profileConstants';
 import type { AppPhase, AppProfile, AppTab } from './types';
 
@@ -12,52 +13,78 @@ type AppContextValue = {
   setTab: (tab: AppTab) => void;
   profile: AppProfile;
   setProfile: React.Dispatch<React.SetStateAction<AppProfile>>;
+  sessionId: string | null;
   savedPhraseIds: Record<string, boolean>;
   toggleSavedPhrase: (id: string) => void;
-  completeSetup: () => void;
+  completeSetup: () => Promise<void>;
   resetApp: () => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-const STORAGE_KEY = 'dialago-app-setup-v1';
-
-function readSetupComplete(): boolean {
-  try {
-    return localStorage.getItem(STORAGE_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>(getInitialLang);
-  const [phase, setPhase] = useState<AppPhase>(() => (readSetupComplete() ? 'main' : 'welcome'));
+  const [phase, setPhase] = useState<AppPhase>('loading');
   const [tab, setTab] = useState<AppTab>('home');
   const [profile, setProfile] = useState<AppProfile>(DEFAULT_PROFILE);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [savedPhraseIds, setSavedPhraseIds] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function restoreSession() {
+      const storedId = readSessionId();
+      if (!storedId) {
+        if (!cancelled) setPhase('welcome');
+        return;
+      }
+
+      try {
+        const session = await fetchSession(storedId);
+        if (cancelled) return;
+
+        if (session) {
+          setSessionId(session.id);
+          setProfile(session.demographics);
+          setPhase('main');
+        } else {
+          clearSessionId();
+          setPhase('welcome');
+        }
+      } catch {
+        if (!cancelled) setPhase('welcome');
+      }
+    }
+
+    void restoreSession();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const setLang = useCallback((next: Lang) => {
     setLangState(next);
     localStorage.setItem('dialago-lang', next);
   }, []);
 
-  const completeSetup = useCallback(() => {
+  const completeSetup = useCallback(async () => {
     try {
-      localStorage.setItem(STORAGE_KEY, '1');
-    } catch {
-      /* ignore */
+      const session = await createSession(profile);
+      writeSessionId(session.id);
+      setSessionId(session.id);
+      setPhase('main');
+      setTab('home');
+    } catch (err) {
+      console.error('Failed to save session:', err);
+      setPhase('main');
+      setTab('home');
     }
-    setPhase('main');
-    setTab('home');
-  }, []);
+  }, [profile]);
 
   const resetApp = useCallback(() => {
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      /* ignore */
-    }
+    clearSessionId();
+    setSessionId(null);
     setProfile(DEFAULT_PROFILE);
     setSavedPhraseIds({});
     setPhase('welcome');
@@ -78,12 +105,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setTab,
       profile,
       setProfile,
+      sessionId,
       savedPhraseIds,
       toggleSavedPhrase,
       completeSetup,
       resetApp,
     }),
-    [lang, setLang, phase, tab, profile, savedPhraseIds, toggleSavedPhrase, completeSetup, resetApp],
+    [lang, setLang, phase, tab, profile, sessionId, savedPhraseIds, toggleSavedPhrase, completeSetup, resetApp],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
