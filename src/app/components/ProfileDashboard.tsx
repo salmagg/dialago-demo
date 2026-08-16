@@ -86,8 +86,9 @@ export function ProfileDashboard() {
             </select>
           </div>
 
+          {/* FIXED SUBMIT BUTTON TEXT */}
           <button type="submit" style={{ marginTop: '12px', padding: '12px', background: 'var(--text)', color: 'var(--bg)', borderRadius: '8px', border: 'none', fontWeight: '700', cursor: 'pointer', fontSize: '15px' }}>
-            Complete Setup
+            Submit
           </button>
         </form>
       </div>
